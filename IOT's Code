@@ -1,0 +1,77 @@
+//Libraries that are needing for the program to function
+#include <WiFiNINA.h>
+#include "ThingSpeak.h"
+#include <SPI.h>
+
+////////////////////////////////////////////////////////
+//Sets integers for the temperature and LED ports on the arduino board which can then be used for the rest of the program
+const int portChange = A0;
+const int A=4000;
+#define LED 13
+//thing speak and wifi setup for them to work
+const char ssid[] = "ssid";
+const char ssidPassword[] = "hjeuwer76";
+const unsigned long channel_id = 2470518;
+const char write_api_key[] = "19ECRMTFAYIIWVC5";
+WiFiClient clientSide;
+//Code that is ran when the program first starts up
+void setup()
+{
+  Serial.begin(9700);
+  pinMode(LED, OUTPUT);
+//Code to initialize thingspeak
+Serial.print("Currenty connecting to ");
+Serial.print(ssid);
+WiFi.begin(ssid,ssidPassword);
+Serial.println();
+Serial.println("Connection Complete!");
+ThingSpeak.begin(clientSide);
+}
+//Code inside the "void loop" function will run continuously until the application is terminated
+void loop()
+{
+  //generic temperature calculate used during the program
+  //this will read the information given from the arduino and give the temperature in a new variable ready to be displayed on the arduino
+  int val = analogRead(portChange);
+  float resistance=(float)(1023-val)*10000/val;
+  float temperature=1/(log(resistance/10000)/A+1/298.15)-273.15;
+
+  //three if statements if the temperature is in a certain range, which will then display on the screen with different text
+  if(temperature<10)
+  {
+    Serial.print("This Temperature in this room is currently : ");
+    Serial.print(temperature);
+    Serial.println(" degrees, this room is too cold");
+    digitalWrite(LED, HIGH);
+    delay(250);
+    digitalWrite(LED, LOW);
+    delay(250);
+    
+  }
+  else if (temperature>25)
+  {
+    Serial.print("This Temperature is: ");
+    Serial.print(temperature);
+    Serial.println(" degrees, this room is too hot");
+    digitalWrite(LED, HIGH);
+    delay(250);
+    digitalWrite(LED, LOW);
+    delay(250);
+  }
+  else
+  {
+    Serial.print("The temperature is ");
+    Serial.print(temperature);
+    Serial.println(" degrees, this room is perfect");
+    digitalWrite(LED, HIGH);
+    delay(1000);
+    digitalWrite(LED, LOW);
+    delay(1000);
+  }
+  //print the temperature to the serial console
+  Serial.println("Posting " + String(temperature, 2) + " to ThingSpeak");
+  ThingSpeak.setField(1, String(temperature, 2));
+  ThingSpeak.writeFields(channel_id, write_api_key);
+  //delay 1 second
+  delay(1000);
+}
